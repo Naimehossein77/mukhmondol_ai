@@ -6,6 +6,8 @@ import face_recognition
 import numpy as np
 from typing import List
 
+from app.unknown_user import save_unknown_embedding
+
 router = APIRouter()
 
 def get_photographer_id_by_email(email):
@@ -43,7 +45,7 @@ def find_matching_users(face_encoding):
     for user in users:
         user_id, embedding_blob = user
         saved_embedding = np.frombuffer(embedding_blob, dtype=np.float64)
-        if face_recognition.compare_faces([saved_embedding], face_encoding)[0]:
+        if face_recognition.compare_faces([saved_embedding], face_encoding,tolerance= 0.4)[0]:
             matched_users.append(user_id)
     
     return matched_users
@@ -86,7 +88,9 @@ async def upload_photographer_image(
                 image_url = upload_image_to_firebase(image_path, f"photographer_{photographer_id}_user_{user_id}_{file.filename}")
                 save_image_info(user_id, photographer_id, image_url)
                 # send_image_to_user(user_id, image_url)
-        # else:
+        else:
+           image_url = upload_image_to_firebase(image_path, f"photographer_{photographer_id}_user_unknown_{file.filename}")
+           save_unknown_embedding(face_encoding,image_url,photographer_id)
             # save_face_encoding_for_future(face_encoding)
 
     return {"message": "Processing completed"}
